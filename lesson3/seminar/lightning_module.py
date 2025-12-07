@@ -136,6 +136,14 @@ class BaseLightningModule(pl.LightningModule):
                 if metric_name in self.metrics:
                     try:
                         metric_value = self.metrics[metric_name].compute()
+
+                        # ==== Добавляем обработку confusion_matrix ====
+                        if metric_name == "confusion_matrix":
+                            print("\nConfusion Matrix:")
+                            print(metric_value.cpu().numpy())
+                            self.log("val_confusion_matrix", metric_value)
+                            continue
+
                         metric_val_item = metric_value.item() if metric_value.numel() == 1 else float(metric_value)
                         self.log(f'val_{metric_name}', metric_val_item, on_step=False, on_epoch=True, sync_dist=False)
                         metrics_str.append(f"{metric_name}={metric_val_item:.4f}")
