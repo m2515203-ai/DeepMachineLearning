@@ -7,7 +7,7 @@ from torchmetrics import (
 )
 from torchmetrics.classification import (
     BinaryAccuracy, BinaryPrecision, BinaryRecall, BinaryF1Score,
-    BinaryAUROC, BinaryAveragePrecision
+    BinaryAUROC, BinaryAveragePrecision, BinaryConfusionMatrix
 )
 import pytorch_lightning as pl
 
@@ -37,7 +37,7 @@ class BaseLightningModule(pl.LightningModule):
             elif task_type == 'binary_classification':
                 self.metrics_to_log = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc', 'pr_auc']
             elif task_type == 'multiclass':
-                self.metrics_to_log = ['accuracy', 'f1_macro']
+                self.metrics_to_log = ['accuracy', 'f1_macro','confusion_matrix']
             else:
                 self.metrics_to_log = []
         else:
@@ -65,14 +65,16 @@ class BaseLightningModule(pl.LightningModule):
                 'recall': BinaryRecall(),
                 'f1': BinaryF1Score(),
                 'roc_auc': BinaryAUROC(),
-                'pr_auc': BinaryAveragePrecision()
+                'pr_auc': BinaryAveragePrecision(),
+                'confusion_matrix': BinaryConfusionMatrix()
             }
         
         elif self.task_type == 'multiclass':
             num_classes = self.model.output_dim
             metric_map = {
                 'accuracy': Accuracy(task='multiclass', num_classes=num_classes),
-                'f1_macro': F1Score(task='multiclass', num_classes=num_classes, average='macro')
+                'f1_macro': F1Score(task='multiclass', num_classes=num_classes, average='macro'),
+                'confusion_matrix': BinaryConfusionMatrix(task='multiclass', num_classes=num_classes)
             }
         else:
             metric_map = {}
