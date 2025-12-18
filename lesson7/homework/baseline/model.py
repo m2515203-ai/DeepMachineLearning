@@ -75,7 +75,8 @@ class MultiBranchMLP(nn.Module):
         output_dim,
         num_blocks=4,
         dropout=0.1,
-        combine_mode='concat'
+        combine_mode='concat',
+        activation='gelu',
     ):
         super().__init__()
         self.output_dim = output_dim
@@ -84,17 +85,17 @@ class MultiBranchMLP(nn.Module):
         self.input_proj = nn.Linear(input_dim, hidden_dim)
         
         self.bottleneck_branch = nn.ModuleList([
-            BottleneckBlock(hidden_dim, activation='gelu', dropout=dropout)
+            BottleneckBlock(hidden_dim, activation=activation, dropout=dropout)
             for _ in range(num_blocks)
         ])
         
         self.inverted_branch = nn.ModuleList([
-            InvertedBottleneckBlock(hidden_dim, expansion_factor=4, activation='gelu', dropout=dropout)
+            InvertedBottleneckBlock(hidden_dim, expansion_factor=4, activation=activation, dropout=dropout)
             for _ in range(num_blocks)
         ])
         
         self.regular_branch = nn.ModuleList([
-            RegularBlock(hidden_dim, hidden_dim=hidden_dim * 2, activation='gelu', dropout=dropout)
+            RegularBlock(hidden_dim, hidden_dim=hidden_dim * 2, activation=activation, dropout=dropout)
             for _ in range(num_blocks)
         ])
         

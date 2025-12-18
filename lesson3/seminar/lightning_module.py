@@ -3,11 +3,11 @@ import torch.nn as nn
 import torch.optim as optim
 from torchmetrics import (
     MeanSquaredError, MeanAbsoluteError, R2Score,
-    Accuracy, F1Score
+    Accuracy, F1Score, ConfusionMatrix
 )
 from torchmetrics.classification import (
     BinaryAccuracy, BinaryPrecision, BinaryRecall, BinaryF1Score,
-    BinaryAUROC, BinaryAveragePrecision
+    BinaryAUROC, BinaryAveragePrecision, BinaryConfusionMatrix
 )
 import pytorch_lightning as pl
 
@@ -37,7 +37,7 @@ class BaseLightningModule(pl.LightningModule):
             elif task_type == 'binary_classification':
                 self.metrics_to_log = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc', 'pr_auc']
             elif task_type == 'multiclass':
-                self.metrics_to_log = ['accuracy', 'f1_macro']
+                self.metrics_to_log = ['accuracy', 'f1_macro','confusion_matrix']
             else:
                 self.metrics_to_log = []
         else:
@@ -65,14 +65,16 @@ class BaseLightningModule(pl.LightningModule):
                 'recall': BinaryRecall(),
                 'f1': BinaryF1Score(),
                 'roc_auc': BinaryAUROC(),
-                'pr_auc': BinaryAveragePrecision()
+                'pr_auc': BinaryAveragePrecision(),
+                'confusion_matrix': BinaryConfusionMatrix()
             }
         
         elif self.task_type == 'multiclass':
             num_classes = self.model.output_dim
             metric_map = {
                 'accuracy': Accuracy(task='multiclass', num_classes=num_classes),
-                'f1_macro': F1Score(task='multiclass', num_classes=num_classes, average='macro')
+                'f1_macro': F1Score(task='multiclass', num_classes=num_classes, average='macro'),
+                'confusion_matrix': ConfusionMatrix(task='multiclass', num_classes=num_classes)
             }
         else:
             metric_map = {}
@@ -134,6 +136,14 @@ class BaseLightningModule(pl.LightningModule):
                 if metric_name in self.metrics:
                     try:
                         metric_value = self.metrics[metric_name].compute()
+
+                        # ==== Добавляем обработку confusion_matrix ====
+                        if metric_name == "confusion_matrix":
+                            print("\nConfusion Matrix:")
+                            print(metric_value.cpu().numpy())
+                            self.log("val_confusion_matrix", metric_value)
+                            continue
+
                         metric_val_item = metric_value.item() if metric_value.numel() == 1 else float(metric_value)
                         self.log(f'val_{metric_name}', metric_val_item, on_step=False, on_epoch=True, sync_dist=False)
                         metrics_str.append(f"{metric_name}={metric_val_item:.4f}")
@@ -146,13 +156,15 @@ class BaseLightningModule(pl.LightningModule):
         optimizer_kwargs = {'lr': self.learning_rate, **self.optimizer_kwargs}
         
         if self.optimizer_type == 'sgd':
-            return optim.SGD(self.parameters(), **optimizer_kwargs)
+            return optim.SGD(self.parameters(), momentum=0.9)
         elif self.optimizer_type == 'adam':
             return optim.Adam(self.parameters(), **optimizer_kwargs)
         elif self.optimizer_type == 'adamw':
             return optim.AdamW(self.parameters(), **optimizer_kwargs)
         elif self.optimizer_type == 'rmsprop':
             return optim.RMSprop(self.parameters(), **optimizer_kwargs)
+        elif self.optimizer_type == 'adagrad':
+            return optim.Adagrad(self.parameters(), **optimizer_kwargs)
         elif self.optimizer_type == 'adagrad':
             return optim.Adagrad(self.parameters(), **optimizer_kwargs)
         else:

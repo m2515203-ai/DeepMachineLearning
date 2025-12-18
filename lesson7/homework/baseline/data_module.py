@@ -39,7 +39,7 @@ class DataModule(pl.LightningDataModule):
         train_unlabeled_csv='train_unlabeled.csv',
         test_csv='test.csv',
         batch_size=128,
-        num_workers=4
+        num_workers=1
     ):
         super().__init__()
         self.data_dir = data_dir
@@ -69,14 +69,14 @@ class DataModule(pl.LightningDataModule):
         print(f'Number of classes: {self.n_classes}')
         print(f'Labeled train samples: {len(self.train_labeled_dataset)}')
         print(f'Test samples: {len(self.test_dataset)}')
-    
+
     def train_dataloader(self):
         return DataLoader(
             self.train_labeled_dataset,
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
-            pin_memory=True
+            pin_memory=True,
         )
     
     def val_dataloader(self):
@@ -85,7 +85,7 @@ class DataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            pin_memory=True
+            pin_memory=True,
         )
     
     def test_dataloader(self):
@@ -94,5 +94,5 @@ class DataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            pin_memory=True
+            pin_memory=True,
         )
